@@ -215,7 +215,7 @@ def apagarDiretorio(ftp):
 
     ftp.leitura.limparTela()
 
-    if ftp.usuario is 'anonymous':
+    if ftp.usuario == 'anonymous':
         ftp.leitura.enviarMensagem('\nFalha na operação de ' +
                                    'exclusão de diretório.' +
                                    'Usuário possui restrições de uso.')
@@ -233,25 +233,22 @@ def apagarDiretorio(ftp):
     # Limpa as mensagens do servidor, caso exista alguma que não foi lida.
     conteudoMensagem(ftp.conexao)
 
-    if verificarResposta(ftp.rmd(ftp.conexao, nomeDiretorio), '226') is True:
-        '''
-        Caso o retorno da função rmd seja positivo,
-        é realizada uma nova leitura aos dados enviados pelo servidor.
-        '''
-
-        mensagem = conteudoMensagem(ftp.conexao)
-
-        if verificarResposta(mensagem, '250') is True:
-            ftp.leitura.enviarMensagem('\nDiretorio %s foi excluído.'
+    if verificarResposta(ftp.rmd(ftp.conexao, nomeDiretorio), '250') is True:
+        
+        ftp.leitura.enviarMensagem('\nDiretório %s foi excluído.'
                                        % nomeDiretorio)
-            '''
-            Lista apenas os diretórios presentes do diretório
-            corrente do servidor.
-            '''
-            listarDiretorioCorrente(ftp, True, 2)
-            return
-        else:
+        '''
+        Lista apenas os diretórios presentes do diretório
+        corrente do servidor.
+        '''
+        listarDiretorioCorrente(ftp, True, 2)
+        return
+    else:
+        if remover(ftp, nomeDiretorio) is False:        
             ftp.leitura.enviarMensagem('\nFalha na operação de exclusão.')
+        else:
+            ftp.leitura.enviarMensagem('\nDiretório %s foi excluído.'
+                                       % nomeDiretorio)
 
 
 '''
@@ -265,7 +262,7 @@ def criarDiretorioRemoto(ftp):
 
     ftp.leitura.limparTela()
 
-    if ftp.usuario is 'anonymous':
+    if ftp.usuario == 'anonymous':
         ftp.leitura.enviarMensagem('\nFalha na operação de ' +
                                    'criação de diretório.' +
                                    ' Usuário possui restrições de uso.')
@@ -392,7 +389,7 @@ def enviarArquivo(ftp):
 
     ftp.leitura.limparTela()
 
-    if ftp.usuario is 'anonymous':
+    if ftp.usuario == 'anonymous':
         ftp.leitura.enviarMensagem('\nFalha na operação de enviar arquivo.' +
                                    ' Usuário possui restrições de uso.')
         return
@@ -468,7 +465,7 @@ def removerArquivoServidor(ftp):
 
     ftp.leitura.limparTela()
 
-    if ftp.usuario is 'anonymous':
+    if ftp.usuario == 'anonymous':
         ftp.leitura.enviarMensagem('\nFalha na operação de exclusão arquivo.' +
                                    ' Usuário possui restrições de uso.')
         return
@@ -511,10 +508,12 @@ def removerArquivoServidor(ftp):
 
 # Quebra a string recebida e retorna o que seria o diretório.
 def pegarDiretorio(diretorio):
-    diretorio.split(' ')[1]
-    diretorio = diretorio.split("\"")[1]
-    return diretorio.split("\"")[0]
-
+    try:
+        diretorio.split(' ')[1]
+        diretorio = diretorio.split("\"")[1]
+        return diretorio.split("\"")[0]
+    except IndexError:
+        pass
 
 # Lista o contéudo do diretório corrente da aplicação.
 def listarConteudo():
@@ -528,6 +527,7 @@ Verifica se o início da mensagem recebida por parâmetro
 
 
 def verificarResposta(mensagem, codigo):
+    print mensagem
     return mensagem.startswith(codigo)
 
 
@@ -569,7 +569,7 @@ def conteudoMensagem(conexao):
                 break
         except Exception, e:
             break
-
+    print dados
     return dados
 
 '''
@@ -616,3 +616,36 @@ def formatarMLSD(dados, tipo):
 
     return saidaFormatada
 
+def remover(ftp, diretorio):
+    tempoConexao(ftp.conexao)
+
+    # Limpa as mensagens do servidor, caso exista alguma que não foi lida.
+    conteudoMensagem(ftp.conexao)
+    #timed out
+    diretorio1 = pegarDiretorio(ftp.pwd(ftp.conexao))
+    diretorio = '/' + diretorio
+    diretorio1 += diretorio
+
+    ftp.cwd(ftp.conexao, diretorio1)
+
+    if verificarResposta(ftp.conexao.recv(1024),
+                         '250') is True:
+      conexaoDados = criarConexaoDados(ftp.host,
+                                       ftp.pasv(ftp.conexao))
+      if conexaoDados is not None: 
+        ftp.conexao.sendall('LIST\n\r')
+        retorno = conexaoDados.recv(1024)
+
+        if len(retorno) is 0:
+            return True
+
+        conteudo = retorno.split('\r')
+ 
+        for i in range(len(conteudo)-1):
+            a = list(conteudo[i].split(' '))
+            if a[0].startswith('-') or a[0].startswith('\n-'):
+              ftp.dele(ftp.conexao, a[-1])
+              conteudoMensagem(ftp.conexao)
+            else:
+                print a[-1]
+                remover(ftp, a[-1])
