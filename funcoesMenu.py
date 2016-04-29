@@ -569,7 +569,7 @@ def conteudoMensagem(conexao):
                 break
         except Exception, e:
             break
-    print dados
+
     return dados
 
 '''
@@ -616,36 +616,64 @@ def formatarMLSD(dados, tipo):
 
     return saidaFormatada
 
+
 def remover(ftp, diretorio):
     tempoConexao(ftp.conexao)
-
+    ftp.conexao.settimeout(50.0)
     # Limpa as mensagens do servidor, caso exista alguma que não foi lida.
     conteudoMensagem(ftp.conexao)
-    #timed out
+    
     diretorio1 = pegarDiretorio(ftp.pwd(ftp.conexao))
     diretorio = '/' + diretorio
     diretorio1 += diretorio
 
+    print '>>' + diretorio1
+   
     ftp.cwd(ftp.conexao, diretorio1)
 
     if verificarResposta(ftp.conexao.recv(1024),
                          '250') is True:
-      conexaoDados = criarConexaoDados(ftp.host,
+
+        conexaoDados = criarConexaoDados(ftp.host,
                                        ftp.pasv(ftp.conexao))
-      if conexaoDados is not None: 
-        ftp.conexao.sendall('LIST\n\r')
-        retorno = conexaoDados.recv(1024)
+        if conexaoDados is not None:
+            retornoArquivos = formatarMLSD(ftp.mlsd(ftp.conexao, conexaoDados),
+                                    3)
+            fecharConexao(conexaoDados)
 
-        if len(retorno) is 0:
-            return True
+            if len(retornoArquivos) != 0:
+                conteudoArq = list(retornoArquivos.split('\n'))
+                
+                for i in range(len(conteudoArq)-1):
+                    a = list(conteudoArq[i].split(' '))
+                    print 'RENOVE ARQ' + a[1]
+                    ftp.dele(ftp.conexao, a[1])
+                    conteudoMensagem(ftp.conexao)
 
-        conteudo = retorno.split('\r')
- 
-        for i in range(len(conteudo)-1):
-            a = list(conteudo[i].split(' '))
-            if a[0].startswith('-') or a[0].startswith('\n-'):
-              ftp.dele(ftp.conexao, a[-1])
-              conteudoMensagem(ftp.conexao)
+        conteudoMensagem(ftp.conexao)
+
+        conexaoDados = criarConexaoDados(ftp.host,
+                                       ftp.pasv(ftp.conexao))
+        if conexaoDados is not None:
+            retornoDiretorio = formatarMLSD(ftp.mlsd(ftp.conexao, conexaoDados),
+                                    2)
+            fecharConexao(conexaoDados)
+        
+            if len(retornoDiretorio) != 0:
+                conteudoDir = list(retornoDiretorio.split('\n'))
+                
+                for i in range(len(conteudoDir)-1):
+                    a = list(conteudoDir[i].split(' '))
+                    print 'RENOVE Dir' + a[1]
+                    if a[1].startswith('.') is False:
+                        if verificarResposta(ftp.rmd(ftp.conexao,
+                                             a[1]), '250') is False:
+                            conteudoMensagem(ftp.conexao)
+                            print a[1]
+                            remover(ftp, a[1])
+                            ftp.conexao.send('CDUP\n\r')
+                            conteudoMensagem(ftp.conexao)
+
             else:
-                print a[-1]
-                remover(ftp, a[-1])
+                return True
+
