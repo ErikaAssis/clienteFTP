@@ -1,6 +1,8 @@
 # coding: utf-8
 
+import os
 import socket
+import shutil
 import glob
 from servicosFTP import Servicos
 
@@ -22,7 +24,7 @@ def criarConexaoDados(host, porta):
     try:
         cliente.connect((host, porta))
         conteudoMensagem(cliente)
-    except Exception, e:
+    except Exception:
         cliente = None
     finally:
         return cliente
@@ -119,7 +121,7 @@ def listarDiretorioCorrente(ftp, tipo, versaoMlsd):
             arquivos = formatarMLSD(ftp.mlsd(ftp.conexao, conexaoDados),
                                     versaoMlsd)
             if len(arquivos) is 0:
-                ftp.leitura.enviarMensagem('\nDiretório vazio.\n')
+                ftp.leitura.enviarMensagem('\nDiretório não possui contéudo solicitado.\n')
             else:
                 print arquivos
 
@@ -171,9 +173,18 @@ def acessarDiretorio(ftp):
                                                   ' diretório' +
                                                   ' pai digite ..\t')
 
+        '''
+        Verifica se o usuário apenas apertou o Enter. Se sim,
+        a aplicação volta ao menu.
+        '''
+
+        if len(novoDiretorio) is 0:
+            ftp.leitura.enviarMensagem('\nNenhum dado foi informado.' +
+                                       ' Aplicação voltará ao menu.')
+            return
+
         # Altera o diretório corrente do servidor.
         ftp.cwd(ftp.conexao, novoDiretorio)
-
 
 
         # Limpa as mensagens do servidor, caso exista alguma que não foi lida.
@@ -189,6 +200,11 @@ def acessarDiretorio(ftp):
 
             listarDiretorioCorrente(ftp, False, 1)
             opcao = ftp.leitura.lerString('Deseja continuar a operação? S/N')
+
+            if len(opcao) is 0:
+                ftp.leitura.enviarMensagem('\nNenhum dado foi informado.' +
+                                       ' Aplicação voltará ao menu.')
+                return
 
             verificacao1 = opcao != 'N' and opcao != 'n'
             verificacao2 = opcao != 'S' and opcao != 's'
@@ -229,6 +245,15 @@ def apagarDiretorio(ftp):
         return
 
     nomeDiretorio = ftp.leitura.lerString('Informe o diretório a ser removido')
+    '''
+    Verifica se o usuário apenas apertou o Enter. Se sim,
+    a aplicação volta ao menu.
+    '''
+
+    if len(nomeDiretorio) is 0:
+        ftp.leitura.enviarMensagem('\nNenhum dado foi informado.' +
+                                       ' Aplicação voltará ao menu.')
+        return
 
     # Limpa as mensagens do servidor, caso exista alguma que não foi lida.
     conteudoMensagem(ftp.conexao)
@@ -249,6 +274,8 @@ def apagarDiretorio(ftp):
         else:
             ftp.leitura.enviarMensagem('\nDiretório %s foi excluído.'
                                        % nomeDiretorio)
+            ftp.cdup(ftp.conexao)
+            conteudoMensagem(ftp.conexao)
 
 
 '''
@@ -279,10 +306,20 @@ def criarDiretorioRemoto(ftp):
     '''
     conteudoMensagem(ftp.conexao)
 
+    nomeDiretorio = ftp.leitura.lerString('\nNome do diretório' +
+                                                 ' a ser criado')
+    '''
+    Verifica se o usuário apenas apertou o Enter. Se sim,
+    a aplicação volta ao menu.
+    '''
+
+    if len(nomeDiretorio) is 0:
+        ftp.leitura.enviarMensagem('\nNenhum dado foi informado.' +
+                                       ' Aplicação voltará ao menu.')
+        return
+
     # Recebe a resposta da função de criação do diretório.
-    respostaServ = ftp.mkd(ftp.conexao,
-                           ftp.leitura.lerString('\nNome do diretório' +
-                                                 ' a ser criado'))
+    respostaServ = ftp.mkd(ftp.conexao, novoDiretorio)
     resposta = verificaMensagemSocket(respostaServ, ftp.conexao)
 
     if resposta is None:
@@ -347,6 +384,16 @@ def baixarArquivo(ftp):
                                             'diretório corrente' +
                                             ' da aplicação')
 
+        '''
+        Verifica se o usuário apenas apertou o Enter. Se sim,
+        a aplicação volta ao menu.
+        '''
+
+        if len(nomeArquivo) is 0:
+            ftp.leitura.enviarMensagem('\nNenhum dado foi informado.' +
+                                       ' Aplicação voltará ao menu.')
+            return
+
         # Limpa as mensagens do servidor, caso exista alguma que não foi lida.
         conteudoMensagem(ftp.conexao)
 
@@ -356,6 +403,17 @@ def baixarArquivo(ftp):
         '''
 
         if verificarResposta(ftp.retr(ftp.conexao, nomeArquivo), '150') is True:
+            # Cria uma pasta onde serão salvos os downloads.
+            try:
+                os.mkdir('Download_Aplicacao')
+            except Exception:
+                pass
+
+            diretorioCorrente = os.getcwd()
+            diretorioCorrente += '/Download_Aplicacao/'
+
+            # Altera o diretório corrente da aplicação
+            os.chdir(diretorioCorrente)
 
             arquivo = open(nomeArquivo, 'wb')
 
@@ -370,6 +428,9 @@ def baixarArquivo(ftp):
 
             arquivo.close()
             fecharConexao(conexaoDados)
+            
+            # Altera o diretório corrente da aplicação
+            os.chdir('..')
 
             ftp.leitura.enviarMensagem('\nOperação realizada com sucesso.')
         else:
@@ -397,6 +458,16 @@ def enviarArquivo(ftp):
     ftp.leitura.enviarMensagem('\nDiretório corrente da aplicação\n')
     listarConteudo()
     nomeArquivo = ftp.leitura.lerString('\nEscolha o arquivo a ser enviado')
+
+    '''
+    Verifica se o usuário apenas apertou o Enter. Se sim,
+    a aplicação volta ao menu.
+    '''
+
+    if len(nomeArquivo) is 0:
+        ftp.leitura.enviarMensagem('\nNenhum dado foi informado.' +
+                                   ' Aplicação voltará ao menu.')
+        return
 
     tempoConexao(ftp.conexao)
 
@@ -527,7 +598,6 @@ Verifica se o início da mensagem recebida por parâmetro
 
 
 def verificarResposta(mensagem, codigo):
-    print mensagem
     return mensagem.startswith(codigo)
 
 
@@ -616,64 +686,30 @@ def formatarMLSD(dados, tipo):
 
     return saidaFormatada
 
+'''
+Função é chamada quando o usuário quer remover um diretório
+que nao está vazio.
+'''
+
 
 def remover(ftp, diretorio):
     tempoConexao(ftp.conexao)
-    ftp.conexao.settimeout(50.0)
+
     # Limpa as mensagens do servidor, caso exista alguma que não foi lida.
     conteudoMensagem(ftp.conexao)
     
-    diretorio1 = pegarDiretorio(ftp.pwd(ftp.conexao))
+    caminhoCompleto = pegarDiretorio(ftp.pwd(ftp.conexao))
     diretorio = '/' + diretorio
-    diretorio1 += diretorio
-
-    print '>>' + diretorio1
+    caminhoCompleto += diretorio
    
-    ftp.cwd(ftp.conexao, diretorio1)
+    ftp.cwd(ftp.conexao, caminhoCompleto)
 
     if verificarResposta(ftp.conexao.recv(1024),
                          '250') is True:
-
-        conexaoDados = criarConexaoDados(ftp.host,
-                                       ftp.pasv(ftp.conexao))
-        if conexaoDados is not None:
-            retornoArquivos = formatarMLSD(ftp.mlsd(ftp.conexao, conexaoDados),
-                                    3)
-            fecharConexao(conexaoDados)
-
-            if len(retornoArquivos) != 0:
-                conteudoArq = list(retornoArquivos.split('\n'))
-                
-                for i in range(len(conteudoArq)-1):
-                    a = list(conteudoArq[i].split(' '))
-                    print 'RENOVE ARQ' + a[1]
-                    ftp.dele(ftp.conexao, a[1])
-                    conteudoMensagem(ftp.conexao)
-
-        conteudoMensagem(ftp.conexao)
-
-        conexaoDados = criarConexaoDados(ftp.host,
-                                       ftp.pasv(ftp.conexao))
-        if conexaoDados is not None:
-            retornoDiretorio = formatarMLSD(ftp.mlsd(ftp.conexao, conexaoDados),
-                                    2)
-            fecharConexao(conexaoDados)
-        
-            if len(retornoDiretorio) != 0:
-                conteudoDir = list(retornoDiretorio.split('\n'))
-                
-                for i in range(len(conteudoDir)-1):
-                    a = list(conteudoDir[i].split(' '))
-                    print 'RENOVE Dir' + a[1]
-                    if a[1].startswith('.') is False:
-                        if verificarResposta(ftp.rmd(ftp.conexao,
-                                             a[1]), '250') is False:
-                            conteudoMensagem(ftp.conexao)
-                            print a[1]
-                            remover(ftp, a[1])
-                            ftp.conexao.send('CDUP\n\r')
-                            conteudoMensagem(ftp.conexao)
-
-            else:
-                return True
-
+        try:
+            # Remove o diretório em árvore
+            shutil.rmtree(caminhoCompleto)
+            return True
+        except Exception, e:
+            return False
+            
