@@ -25,7 +25,11 @@ class Servicos():
     '''
 
     def cdup(self, conexao):
-        conexao.sendall('CDUP\r\n')
+        try:
+            conexao.sendall('CDUP\r\n')
+        except Exception:
+            pass
+        
 
     '''
     Permite alterar o diretório corrente.
@@ -34,7 +38,11 @@ class Servicos():
     '''
 
     def cwd(self, conexao, nomeDiretorio):
-        conexao.sendall('CWD %s\r\n' % nomeDiretorio)
+        try:
+            conexao.sendall('CWD %s\r\n' % nomeDiretorio)
+        except Exception:
+            pass
+        
 
     '''
     Permite apagar o arquivo cujo nome é recebido por parâmetro.
@@ -44,8 +52,12 @@ class Servicos():
     '''
 
     def dele(self, conexao, nomeArquivo):
-        conexao.sendall('DELE %s\r\n' % nomeArquivo)
-        return conexao.recv(TAM_BUFFER)
+        try:
+            conexao.sendall('DELE %s\r\n' % nomeArquivo)
+            return conexao.recv(TAM_BUFFER)
+        except Exception:
+            pass
+        
 
     '''
     Utilizado quando é preciso fazer uso da conexão de dados.
@@ -54,17 +66,25 @@ class Servicos():
     '''
 
     def pasv(self, conexao):
-        conexao.sendall('PASV\r\n')
-        # Faz chamada ao método "quebrarPasv" para obter o número da porta.
-        return self.quebrarPasv(conexao.recv(TAM_BUFFER))
+        try:
+            conexao.sendall('PASV\r\n')
+            # Faz chamada ao método "quebrarPasv" para obter o número da porta.
+            return self.quebrarPasv(conexao.recv(TAM_BUFFER))
+        except Exception:
+            pass
+        
 
     '''
     Retorna o diretório corrente do servidor.
     '''
 
     def pwd(self, conexao):
-        conexao.sendall('PWD\r\n')
-        return conexao.recv(TAM_BUFFER)
+        try:
+            conexao.sendall('PWD\r\n')
+            return conexao.recv(TAM_BUFFER)
+        except Exception:
+            pass
+        
 
     '''
     Permite alterar o tipo de formato em que os dados
@@ -89,24 +109,38 @@ class Servicos():
     '''
 
     def nlst(self, conexao, conexaoDados):
-        conexao.sendall('NLST\r\n')
-        conexao.recv(TAM_BUFFER)
-        dados = ''
+        try:
+            conexao.sendall('NLST\r\n')
+            conexao.recv(TAM_BUFFER)
+            dados = ''
 
-        while True:
-            try:
-                dados += conexaoDados.recv(TAM_BUFFER)
-                if len(dados) == 0:
+            while True:
+                try:
+                    dados += conexaoDados.recv(TAM_BUFFER)
+                    if len(dados) == 0:
+                        break
+                except Exception, e:
                     break
-            except Exception, e:
-                break
 
-        return dados
+            return dados
+        except Exception:
+            pass
+        
 
-
+    '''
+    Lista os ficheiros e diretórios presentes no diretório corrente
+    do servidor.
+    Recebe como parâmetro a conexão já criada e o nome do novo diretório.
+    Retorna a resposta do servidor.e uma conexao de dados, por onde
+    os dados serão recebidos.
+    Retorna a resposta do servidor.
+    '''
     def list(self, conexao, conexaoDados):
-        conexao.sendall('LIST\r\n')
-        return conexaoDados.recv(TAM_BUFFER)
+        try:
+            conexao.sendall('LIST\r\n')
+            return conexaoDados.recv(TAM_BUFFER)
+        except Exception:
+            pass
 
     '''
     Lista os ficheiros e diretórios presentes no diretório corrente
@@ -118,20 +152,24 @@ class Servicos():
     '''
 
     def mlsd(self, conexao, conexaoDados):
-        conexao.settimeout(0.7)
-        conexao.sendall('MLSD\r\n')
-        conexao.recv(TAM_BUFFER)
-        dados = ''
+        try:
+            conexao.settimeout(0.7)
+            conexao.sendall('MLSD\r\n')
+            conexao.recv(TAM_BUFFER)
+            dados = ''
 
-        while True:
-            try:
-                dados += conexaoDados.recv(TAM_BUFFER)
-                if dados[-1] == '\n':
+            while True:
+                try:
+                    dados += conexaoDados.recv(TAM_BUFFER)
+                    if dados[-1] == '\n':
+                        break
+                except Exception, e:
                     break
-            except Exception, e:
-                break
 
-        return dados
+            return dados
+        except Exception:
+            pass
+        
 
     '''
     Permite criar um novo diretório.
@@ -140,8 +178,12 @@ class Servicos():
     '''
 
     def mkd(self, conexao, nomeDiretorio):
-        conexao.sendall('MKD %s\r\n' % nomeDiretorio)
-        return conexao.recv(TAM_BUFFER)
+        try:
+            conexao.sendall('MKD %s\r\n' % nomeDiretorio)
+            return conexao.recv(TAM_BUFFER)
+        except Exception:
+            pass
+        
 
     '''
     Permite a exclusão de um diretório remoto.
@@ -151,8 +193,12 @@ class Servicos():
     '''
 
     def rmd(self, conexao, nomeDiretorio):
-        conexao.sendall('RMD %s\r\n' % nomeDiretorio)
-        return conexao.recv(TAM_BUFFER)
+        try:
+            conexao.sendall('RMD %s\r\n' % nomeDiretorio)
+            return conexao.recv(TAM_BUFFER)
+        except Exception:
+            pass
+        
 
     '''
     Responsável por solicitar ao servidor uma cópia do arquivo recebido
@@ -160,8 +206,12 @@ class Servicos():
     '''
 
     def retr(self, conexao, nomeArquivo):
-        conexao.sendall('RETR %s\r\n' % nomeArquivo)
-        return conexao.recv(TAM_BUFFER)
+        try:
+            conexao.sendall('RETR %s\r\n' % nomeArquivo)
+            return conexao.recv(TAM_BUFFER)
+        except Exception:
+            pass
+        
 
     '''
 	Pede ao servidor que aceite dados que serão enviados através
@@ -172,8 +222,12 @@ class Servicos():
     '''
 
     def stor(self, conexao, nome):
-        conexao.sendall('STOR %s\r\n' % nome.encode('ascii'))
-        return conexao.recv(TAM_BUFFER)
+        try:
+            conexao.sendall('STOR %s\r\n' % nome.encode('ascii'))
+            return conexao.recv(TAM_BUFFER)
+        except Exception:
+            pass
+        
 
     '''
     Comando usado para identificar o usuário que será logado no servidor.
@@ -181,9 +235,13 @@ class Servicos():
     '''
 
     def user(self, conexao, usuario):
-        self.usuario = usuario
-        conexao.sendall('USER %s\r\n' % usuario)
-        return conexao.recv(TAM_BUFFER)
+        try:
+            self.usuario = usuario
+            conexao.sendall('USER %s\r\n' % usuario)
+            return conexao.recv(TAM_BUFFER)
+        except Exception:
+            pass
+        
 
     '''
     Comando usado para identificar a senha para o usuário que será
@@ -192,8 +250,12 @@ class Servicos():
     '''
 
     def password(self, conexao, password):
-        conexao.sendall('PASS %s\n\r' % password)
-        return conexao.recv(TAM_BUFFER)
+        try:
+            conexao.sendall('PASS %s\n\r' % password)
+            return conexao.recv(TAM_BUFFER)
+        except Exception:
+            pass
+        
 
     '''
     Método responsável por quebrar a mensagem recebida como paramêtro.
