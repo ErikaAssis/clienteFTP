@@ -259,14 +259,14 @@ def apagarDiretorio(ftp):
     conteudoMensagem(ftp.conexao)
 
     if verificarResposta(ftp.rmd(ftp.conexao, nomeDiretorio), '250') is True:
-        
-        ftp.leitura.enviarMensagem('\nDiretório %s foi excluído.'
-                                       % nomeDiretorio)
         '''
         Lista apenas os diretórios presentes do diretório
         corrente do servidor.
         '''
-        listarDiretorioCorrente(ftp, True, 2)
+
+        listarDiretorioCorrente(ftp, False, 2)
+        ftp.leitura.enviarMensagem('\nDiretório %s foi excluído.'
+                                       % nomeDiretorio)
         return
     else:
         if remover(ftp, nomeDiretorio) is False:        
@@ -319,21 +319,23 @@ def criarDiretorioRemoto(ftp):
         return
 
     # Recebe a resposta da função de criação do diretório.
-    respostaServ = ftp.mkd(ftp.conexao, novoDiretorio)
+    respostaServ = ftp.mkd(ftp.conexao, nomeDiretorio)
     resposta = verificaMensagemSocket(respostaServ, ftp.conexao)
 
     if resposta is None:
         resposta = respostaServ
 
     if verificarResposta(resposta, '257') is True:
-        ftp.leitura.enviarMensagem('\nDiretório criado com sucesso: ' +
-                                   resposta.split(' ')[1])
         '''
         Lista diretórios e arquivos presentes do diretório
         corrente do servidor.
         '''
         if listarDiretorioCorrente(ftp, False, 1) is False:
             ftp.leitura.enviarMensagem('\nFalha ao listar o diretório.')
+        else:
+            ftp.leitura.enviarMensagem('\nDiretório criado com sucesso: ' +
+                                   resposta.split(' ')[1])
+
     else:
         if(verificarResposta(resposta, '550') is True):
             ftp.leitura.enviarMensagem('\nPermissão negada.')
