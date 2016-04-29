@@ -103,6 +103,11 @@ class Servicos():
 
         return dados
 
+
+    def list(self, conexao, conexaoDados):
+        conexao.sendall('LIST\r\n')
+        return conexaoDados.recv(TAM_BUFFER)
+
     '''
     Lista os ficheiros e diretórios presentes no diretório corrente
     do servidor.
